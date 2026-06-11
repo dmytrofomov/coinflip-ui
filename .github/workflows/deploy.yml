@@ -23,7 +23,7 @@ jobs:
       # The factory lives on testnet, so the site opens in testnet by default.
       # For a mainnet launch: set VITE_FACTORY_ADDRESS_MAINNET and flip this.
       VITE_DEFAULT_NETWORK: testnet
-      VITE_FACTORY_ADDRESS_TESTNET: kQDLbipuUZvCGnFehVhigObfanNyEWrR776vhXy0ouOCaaiM
+      VITE_FACTORY_ADDRESS_TESTNET: kQAoHyncQoSSub_LmK6rEkw6TgPveNkkJX34Yi_zXsyuNbl2
       # Optional hosted lobby indexer; empty → the lobby reads the chain
       # directly from the browser (open games only, no history).
       VITE_INDEXER_URL: ''
