@@ -107,6 +107,18 @@ class StackReader {
     readSlice(): c.Slice {
         return this.popCellLike().beginParse();
     }
+
+    readNullable<T>(readFn_T: (r: StackReader) => T): T | null {
+        if (this.tuple[0].type === 'null') {
+            this.tuple.shift();
+            return null;
+        }
+        return readFn_T(this);
+    }
+
+    readCellRef<T>(loadFn_T: LoadCallback<T>): CellRef<T> {
+        return { ref: loadFn_T(this.readCell().beginParse()) };
+    }
 }
 
 // ————————————————————————————————————————————
@@ -121,8 +133,46 @@ type uint64 = bigint
 type uint256 = bigint
 
 /**
- > struct FactoryStorage {
+ > struct FactoryGov {
  >     admin: address
+ >     pendingAdmin: address?
+ > }
+ */
+export interface FactoryGov {
+    readonly $: 'FactoryGov'
+    admin: c.Address
+    pendingAdmin: c.Address | null
+}
+
+export const FactoryGov = {
+    create(args: {
+        admin: c.Address
+        pendingAdmin: c.Address | null
+    }): FactoryGov {
+        return {
+            $: 'FactoryGov',
+            ...args
+        }
+    },
+    fromSlice(s: c.Slice): FactoryGov {
+        return {
+            $: 'FactoryGov',
+            admin: s.loadAddress(),
+            pendingAdmin: s.loadMaybeAddress(),
+        }
+    },
+    store(self: FactoryGov, b: c.Builder): void {
+        b.storeAddress(self.admin);
+        b.storeAddress(self.pendingAdmin);
+    },
+    toCell(self: FactoryGov): c.Cell {
+        return makeCellFrom<FactoryGov>(self, FactoryGov.store);
+    }
+}
+
+/**
+ > struct FactoryStorage {
+ >     gov: Cell<FactoryGov>
  >     treasury: address
  >     feeBps: uint16
  >     minStake: coins
@@ -136,7 +186,7 @@ type uint256 = bigint
  */
 export interface FactoryStorage {
     readonly $: 'FactoryStorage'
-    admin: c.Address
+    gov: CellRef<FactoryGov>
     treasury: c.Address
     feeBps: uint16
     minStake: coins
@@ -150,7 +200,7 @@ export interface FactoryStorage {
 
 export const FactoryStorage = {
     create(args: {
-        admin: c.Address
+        gov: CellRef<FactoryGov>
         treasury: c.Address
         feeBps: uint16
         minStake: coins
@@ -169,7 +219,7 @@ export const FactoryStorage = {
     fromSlice(s: c.Slice): FactoryStorage {
         return {
             $: 'FactoryStorage',
-            admin: s.loadAddress(),
+            gov: loadCellRef<FactoryGov>(s, FactoryGov.fromSlice),
             treasury: s.loadAddress(),
             feeBps: s.loadUintBig(16),
             minStake: s.loadCoins(),
@@ -182,7 +232,7 @@ export const FactoryStorage = {
         }
     },
     store(self: FactoryStorage, b: c.Builder): void {
-        b.storeAddress(self.admin);
+        storeCellRef<FactoryGov>(self.gov, b, FactoryGov.store);
         b.storeAddress(self.treasury);
         b.storeUint(self.feeBps, 16);
         b.storeCoins(self.minStake);
@@ -195,6 +245,49 @@ export const FactoryStorage = {
     },
     toCell(self: FactoryStorage): c.Cell {
         return makeCellFrom<FactoryStorage>(self, FactoryStorage.store);
+    }
+}
+
+/**
+ > struct GovernanceData {
+ >     admin: address
+ >     pendingAdmin: address?
+ >     treasury: address
+ > }
+ */
+export interface GovernanceData {
+    readonly $: 'GovernanceData'
+    admin: c.Address
+    pendingAdmin: c.Address | null
+    treasury: c.Address
+}
+
+export const GovernanceData = {
+    create(args: {
+        admin: c.Address
+        pendingAdmin: c.Address | null
+        treasury: c.Address
+    }): GovernanceData {
+        return {
+            $: 'GovernanceData',
+            ...args
+        }
+    },
+    fromSlice(s: c.Slice): GovernanceData {
+        return {
+            $: 'GovernanceData',
+            admin: s.loadAddress(),
+            pendingAdmin: s.loadMaybeAddress(),
+            treasury: s.loadAddress(),
+        }
+    },
+    store(self: GovernanceData, b: c.Builder): void {
+        b.storeAddress(self.admin);
+        b.storeAddress(self.pendingAdmin);
+        b.storeAddress(self.treasury);
+    },
+    toCell(self: GovernanceData): c.Cell {
+        return makeCellFrom<GovernanceData>(self, GovernanceData.store);
     }
 }
 
@@ -446,6 +539,103 @@ export const SetGameCode = {
 }
 
 /**
+ > struct (0xc0f10007) ProposeAdmin {
+ >     newAdmin: address
+ > }
+ */
+export interface ProposeAdmin {
+    readonly $: 'ProposeAdmin'
+    newAdmin: c.Address
+}
+
+export const ProposeAdmin = {
+    PREFIX: 0xc0f10007,
+
+    create(args: {
+        newAdmin: c.Address
+    }): ProposeAdmin {
+        return {
+            $: 'ProposeAdmin',
+            ...args
+        }
+    },
+    fromSlice(s: c.Slice): ProposeAdmin {
+        loadAndCheckPrefix32(s, 0xc0f10007, 'ProposeAdmin');
+        return {
+            $: 'ProposeAdmin',
+            newAdmin: s.loadAddress(),
+        }
+    },
+    store(self: ProposeAdmin, b: c.Builder): void {
+        b.storeUint(0xc0f10007, 32);
+        b.storeAddress(self.newAdmin);
+    },
+    toCell(self: ProposeAdmin): c.Cell {
+        return makeCellFrom<ProposeAdmin>(self, ProposeAdmin.store);
+    }
+}
+
+/**
+ > struct (0xc0f10008) ClaimAdmin {
+ > }
+ */
+export interface ClaimAdmin {
+    readonly $: 'ClaimAdmin'
+}
+
+export const ClaimAdmin = {
+    PREFIX: 0xc0f10008,
+
+    create(): ClaimAdmin {
+        return {
+            $: 'ClaimAdmin',
+        }
+    },
+    fromSlice(s: c.Slice): ClaimAdmin {
+        loadAndCheckPrefix32(s, 0xc0f10008, 'ClaimAdmin');
+        return {
+            $: 'ClaimAdmin',
+        }
+    },
+    store(self: ClaimAdmin, b: c.Builder): void {
+        b.storeUint(0xc0f10008, 32);
+    },
+    toCell(self: ClaimAdmin): c.Cell {
+        return makeCellFrom<ClaimAdmin>(self, ClaimAdmin.store);
+    }
+}
+
+/**
+ > struct (0xc0f10009) CancelAdminTransfer {
+ > }
+ */
+export interface CancelAdminTransfer {
+    readonly $: 'CancelAdminTransfer'
+}
+
+export const CancelAdminTransfer = {
+    PREFIX: 0xc0f10009,
+
+    create(): CancelAdminTransfer {
+        return {
+            $: 'CancelAdminTransfer',
+        }
+    },
+    fromSlice(s: c.Slice): CancelAdminTransfer {
+        loadAndCheckPrefix32(s, 0xc0f10009, 'CancelAdminTransfer');
+        return {
+            $: 'CancelAdminTransfer',
+        }
+    },
+    store(self: CancelAdminTransfer, b: c.Builder): void {
+        b.storeUint(0xc0f10009, 32);
+    },
+    toCell(self: CancelAdminTransfer): c.Cell {
+        return makeCellFrom<CancelAdminTransfer>(self, CancelAdminTransfer.store);
+    }
+}
+
+/**
  > struct (0xc0fe0001) EvGameCreated {
  >     gameId: uint64
  >     game: address
@@ -541,7 +731,7 @@ function calculateDeployedAddress(code: c.Cell, data: c.Cell, options: DeployedA
 }
 
 export class CoinFlipFactory implements c.Contract {
-    static CodeCell = c.Cell.fromBase64('te6ccgECDgEAAz8AART/APSkE/S88sgLAQIBYgIDBO7Q+JGRMOAg1ywmB4gADOMC1ywmB4gAFI5LMe1E0PpI+kjTDzH6APoA0x/TH9IA0z/U0fiSKccF8uBkCdcLDyCBA+i78uBpCMj6Uhf6UhfLD1AE+gJY+gLLH8sfEsoAyz/Mye1U4NcsJgeIABzjAtcsJgeIACTjAgQFBgcCAWoMDQH8Me1E0PpI+kjTD/oA+gDTH9Mf0gDTP9TRIvLQZgr6ANP/1woAUyi+lVMnu8MAkXDi8uBn+JcjghAF9eEAoL7y4GgjpAzI+lJSsPpSKs8LD1AJ+gJQB/oCJc8LHyTPCx8TygAZyz8pzxTJ7VT4I1ADoPgo+JIFyMv/GPpSySjICADUMe1E0PpI+kjTD/oAMfoAMdMfMdMfMdIA0z/U0fiSJscF8uBkBvoA+gDTH9cLHyPCAJRdu8MAkXDi8uBxIcIAlSDCAMMAkXDi8uBxCMj6Uhf6UhXLDwH6AlAD+gITyx8Tyx/KAMs/zMntVACEMe1E0PpI+kgx0w/6APoA0x/TH9IA0z/U0fiSKccF8uBkCfpIMAjI+lIY+lIWyw9QBPoCWPoCyx/LH8oAyz/Mye1UArSJ1yeOQzHtRND6SPpI0w/6APoA0x/TH9IAMdM/1NH4kinHBfLgZAnXCgAIyPpSF/pSFcsPUAP6AgH6Assfyx8SygDLP8zJ7VTg1ywmB4gANOMCMIQPAccA8vQKCwH8yz8Y+lIU+lIi+gIUygAUyw8Syx8hzwsfE8zJbQHIzM+EAvpUcM8L/8+QAAAAAslTBMjPhNDMzPkWyM+KAEDL/89Q+JLIz5MD+AAGFss/+lIU+lIB+gLLH8nIz48YAARxzwv3cc8LYczJcPsAyM+JCAFTEsjPhNDMzPkWzwv/CQAcgQCMzwt0EszMyYBA+wAACMDxAAUAhDHtRND6SPpI0w/6APoA0x/TH9IA0z/UMdH4kinHBfLgZAnXTAjI+lIX+lIVyw9QA/oCAfoCyx/LH8oAEss/zMntVABFtTfdqJofSQY/SQY6YeY/QAY/QAY6Y+Y6Y+Y6QAY6Z/qGOjAAM7R+HaiaH0kfSRph/0AfQBpj+mP6QBpn+pow');
+    static CodeCell = c.Cell.fromBase64('te6ccgECEwEABJEAART/APSkE/S88sgLAQIBYgIDBPjQ+JGRMOAg1ywmB4gADOMC1ywmB4gAFI5QMe1E0NT6SNMPMfoA+gDTH9Mf0gDTP9TR+JIp0PpI+lAx0ccF8uBkCdcLDyCBA+i78uBpCMjMF/pSF8sPUAT6Alj6Assfyx8SygDLP8zJ7VTg1ywmB4gAHOMC1ywmB4gAJOMCBAUGBwIBIA8QAf4x7UTQ1PpI0w/6APoA0x/TH9IA0z/U0SLy0GYK+gDT/9cKAFMovpVTJ7vDAJFw4vLgZ/iXI4IQBfXhAKC+8uBoI6QMyMxSsPpSKs8LD1AJ+gJQB/oCJc8LHyTPCx8TygAZyz8pzxTJ7VT4I1ADoPgo+JIFyMv/GPpSySjIyz8YCADeMe1E0NT6SNMP+gAx+gAx0x8x0x8x0gDTP9TR+JIm0PpI+lAx0ccF8uBkBvoA+gDTH9cLHyPCAJRdu8MAkXDi8uBxIcIAlSDCAMMAkXDi8uBxCMjMF/pSFcsPAfoCUAP6AhPLHxPLH8oAyz/Mye1UAI4x7UTQ1PpIMdMP+gD6ANMf0x/SANM/1NH4kinQ+kj6UDHRxwXy4GQJ+kgwCMjMGPpSFssPUAT6Alj6Assfyx/KAMs/zMntVATOidcnjkgx7UTQ1PpI0w/6APoA0x/TH9IAMdM/1NH4kinQ+kj6UDHRxwXy4GQJ1woACMjMF/pSFcsPUAP6AgH6Assfyx8SygDLP8zJ7VTg1ywmB4gANOMC1ywmB4gAPOMC1ywmB4gARAoLDA0B/PpSFPpSIvoCFMoAFMsPEssfIc8LHxPMyW0ByMzPhAL6VHDPC//PkAAAAALJUwTIz4TQzMz5FsjPigBAy//PUPiSyM+TA/gABhbLP/pSFPpSAfoCyx/JyM+PGAAEcc8L93HPC2HMyXD7AMjPiQgBUxLIz4TQzMz5Fs8L/4EAjAkAFs8LdBLMzMmAQPsAAAjA8QAFAI4x7UTQ1PpI0w/6APoA0x/TH9IA0z/UMdH4kinQ+kj6UDHRxwXy4GQJ10wIyMwX+lIVyw9QA/oCAfoCyx/LH8oAEss/zMntVACeMe1E0NT6SNMP+gD6ANMf0x/SANM/1NEJ0PpI+lAx0fiSIccF8uBkCvpIMArI+lIa+lTJyMwX+lIVyw9QA/oCAfoCyx/LH8oAEss/zMntVAHGjk9b7UTQ1PpI0w/6APoA0x/TH9IA0z/U0QnQ+kgx+lDRIG7y0HP4kiHHBfLgcm0ByPpS+lTJyMwY+lIWyw9QBPoCWPoCyx/LH8oAyz/Mye1U4NcsJgeIAEwx4wKEDwHHAPL0DgCUMO1E0NT6SNMP+gD6ANMf0x/SANM/1NEJ0PpI+lAx0fiSIccF8uBkbQHI+lL6VMnIzBj6UhbLD1AE+gJY+gLLH8sfygDLP8zJ7VQAUbzBx2omhqfSRph5j9ABj9ABjpj5jpj5jpABjpn5jqGOiA6H0kfShorEAgFIERIAQ7U33aiaGoY/SQY6YeY/QAY/QAY6Y+Y6Y+Y6QAY6Z/qGOjAAMbR+HaiaGp9JGmH/QB9AGmP6Y/pAGmf6mjA=');
 
     static Errors = {
         'Errors.NotAdmin': 100,
@@ -550,6 +740,8 @@ export class CoinFlipFactory implements c.Contract {
         'Errors.InsufficientValue': 104,
         'Errors.FeeTooHigh': 105,
         'Errors.InvalidLimits': 113,
+        'Errors.NotPendingAdmin': 114,
+        'Errors.NoPendingAdmin': 115,
         'Errors.InvalidMessage': 65535,
     }
 
@@ -566,7 +758,7 @@ export class CoinFlipFactory implements c.Contract {
     }
 
     static fromStorage(emptyStorage: {
-        admin: c.Address
+        gov: CellRef<FactoryGov>
         treasury: c.Address
         feeBps: uint16
         minStake: coins
@@ -624,6 +816,22 @@ export class CoinFlipFactory implements c.Contract {
         code: c.Cell
     }) {
         return SetGameCode.toCell(SetGameCode.create(body));
+    }
+
+    static createCellOfProposeAdmin(body: {
+        newAdmin: c.Address
+    }) {
+        return ProposeAdmin.toCell(ProposeAdmin.create(body));
+    }
+
+    static createCellOfClaimAdmin(body: {
+    }) {
+        return ClaimAdmin.toCell(ClaimAdmin.create());
+    }
+
+    static createCellOfCancelAdminTransfer(body: {
+    }) {
+        return CancelAdminTransfer.toCell(CancelAdminTransfer.create());
     }
 
     async sendDeploy(provider: ContractProvider, via: Sender, msgValue: coins, extraOptions?: ExtraSendOptions) {
@@ -699,11 +907,39 @@ export class CoinFlipFactory implements c.Contract {
         });
     }
 
+    async sendProposeAdmin(provider: ContractProvider, via: Sender, msgValue: coins, body: {
+        newAdmin: c.Address
+    }, extraOptions?: ExtraSendOptions) {
+        return provider.internal(via, {
+            value: msgValue,
+            body: ProposeAdmin.toCell(ProposeAdmin.create(body)),
+            ...extraOptions
+        });
+    }
+
+    async sendClaimAdmin(provider: ContractProvider, via: Sender, msgValue: coins, body: {
+    }, extraOptions?: ExtraSendOptions) {
+        return provider.internal(via, {
+            value: msgValue,
+            body: ClaimAdmin.toCell(ClaimAdmin.create()),
+            ...extraOptions
+        });
+    }
+
+    async sendCancelAdminTransfer(provider: ContractProvider, via: Sender, msgValue: coins, body: {
+    }, extraOptions?: ExtraSendOptions) {
+        return provider.internal(via, {
+            value: msgValue,
+            body: CancelAdminTransfer.toCell(CancelAdminTransfer.create()),
+            ...extraOptions
+        });
+    }
+
     async getFactoryData(provider: ContractProvider): Promise<FactoryStorage> {
         const r = StackReader.fromGetMethod(10, await provider.get('factoryData', []));
         return ({
             $: 'FactoryStorage',
-            admin: r.readSlice().loadAddress(),
+            gov: r.readCellRef<FactoryGov>(FactoryGov.fromSlice),
             treasury: r.readSlice().loadAddress(),
             feeBps: r.readBigInt(),
             minStake: r.readBigInt(),
@@ -719,5 +955,17 @@ export class CoinFlipFactory implements c.Contract {
     async getGamesCount(provider: ContractProvider): Promise<bigint> {
         const r = StackReader.fromGetMethod(1, await provider.get('gamesCount', []));
         return r.readBigInt();
+    }
+
+    async getGovernance(provider: ContractProvider): Promise<GovernanceData> {
+        const r = StackReader.fromGetMethod(3, await provider.get('governance', []));
+        return ({
+            $: 'GovernanceData',
+            admin: r.readSlice().loadAddress(),
+            pendingAdmin: r.readNullable<c.Address>(
+                (r) => r.readSlice().loadAddress()
+            ),
+            treasury: r.readSlice().loadAddress(),
+        });
     }
 }
