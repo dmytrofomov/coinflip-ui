@@ -33,7 +33,9 @@ export function buildGameShareUrl(
 ): string {
   const params = new URLSearchParams();
   params.set('game', gameAddress);
-  if (network === 'testnet') params.set('testnet', 'true');
+  // Always explicit so the link opens on the right network regardless of the
+  // receiver's build default.
+  params.set('testnet', String(network === 'testnet'));
   // BASE_URL keeps the share link inside the deployed subpath on GitHub Pages.
   return `${window.location.origin}${import.meta.env.BASE_URL}?${params.toString()}`;
 }

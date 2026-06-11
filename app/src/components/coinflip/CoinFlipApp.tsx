@@ -78,7 +78,11 @@ export function CoinFlipApp({ network }: { network: Network }) {
       )}
 
       {tab === 'lobby' && (
-        <Lobby walletConnected={walletAddress !== ''} onPlay={playGame} />
+        <Lobby
+          network={network}
+          walletConnected={walletAddress !== ''}
+          onPlay={playGame}
+        />
       )}
 
       {tab === 'play' && factoryAddr === null && (

@@ -5,10 +5,12 @@ import { Loader2, RefreshCw, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   fetchOpenGames,
+  fetchOpenGamesOnChain,
   fetchRecentGames,
   lobbyAvailable,
   type LobbyGame,
 } from '@/lib/lobby';
+import type { Network } from '@/lib/router';
 import { cn } from '@/lib/utils';
 
 function timeLeft(deadline: number): string {
@@ -30,38 +32,30 @@ function outcomeLabel(g: LobbyGame): string {
 }
 
 interface Props {
+  network: Network;
   walletConnected: boolean;
   onPlay: (address: string) => void;
 }
 
-export function Lobby({ walletConnected, onPlay }: Props) {
-  const available = lobbyAvailable();
+export function Lobby({ network, walletConnected, onPlay }: Props) {
+  // With a hosted indexer the lobby is instant and has history; without one
+  // we scan the chain straight from the browser (open games only, slower).
+  const viaIndexer = lobbyAvailable();
 
   const openQuery = useQuery({
-    queryKey: ['lobby', 'open'],
-    queryFn: fetchOpenGames,
-    enabled: available,
-    refetchInterval: 5000,
+    queryKey: ['lobby', 'open', network, viaIndexer],
+    queryFn: () =>
+      viaIndexer ? fetchOpenGames() : fetchOpenGamesOnChain(network),
+    refetchInterval: viaIndexer ? 5000 : 30000,
   });
   const recentQuery = useQuery({
-    queryKey: ['lobby', 'recent'],
+    queryKey: ['lobby', 'recent', network],
     queryFn: () => fetchRecentGames(12),
-    enabled: available,
+    enabled: viaIndexer,
     refetchInterval: 10000,
   });
 
-  if (!available) {
-    return (
-      <div className="border rounded-2xl p-6 text-center text-[14px] text-muted-foreground max-w-xl mx-auto w-full">
-        Лобі недоступне: індексер не налаштовано. Запусти{' '}
-        <code>npm run indexer</code> локально або вкажи{' '}
-        <code>VITE_INDEXER_URL</code> у <code>.env</code>. Поки що грай за
-        прямим посиланням на гру.
-      </div>
-    );
-  }
-
-  const offline = openQuery.isError && recentQuery.isError;
+  const offline = viaIndexer && openQuery.isError && recentQuery.isError;
   const openGames = openQuery.data ?? [];
   const recentGames = recentQuery.data ?? [];
 
@@ -70,6 +64,12 @@ export function Lobby({ walletConnected, onPlay }: Props) {
       {offline && (
         <p className="text-[13px] text-warning text-center">
           Не вдається зʼєднатися з індексером. Він запущений?
+        </p>
+      )}
+      {!viaIndexer && openQuery.isError && (
+        <p className="text-[13px] text-warning text-center">
+          Не вдалося прочитати лобі з ланцюга (ліміт RPC?). Спробуй оновити за
+          хвилину.
         </p>
       )}
 
@@ -137,6 +137,13 @@ export function Lobby({ walletConnected, onPlay }: Props) {
           ))
         )}
       </div>
+
+      {!viaIndexer && (
+        <p className="text-[12px] text-muted-foreground text-center">
+          Лобі читається напряму з блокчейна. Історія результатів зʼявиться,
+          коли буде підключено індексер (<code>VITE_INDEXER_URL</code>).
+        </p>
+      )}
 
       {/* Recent results */}
       {recentGames.length > 0 && (

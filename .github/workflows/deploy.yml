@@ -20,10 +20,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      # Deployed testnet CoinFlipFactory. To ship mainnet, set
-      # VITE_FACTORY_ADDRESS_MAINNET and switch the default network.
+      # The factory lives on testnet, so the site opens in testnet by default.
+      # For a mainnet launch: set VITE_FACTORY_ADDRESS_MAINNET and flip this.
+      VITE_DEFAULT_NETWORK: testnet
       VITE_FACTORY_ADDRESS_TESTNET: kQDLbipuUZvCGnFehVhigObfanNyEWrR776vhXy0ouOCaaiM
-      # Optional hosted lobby indexer; empty → the lobby tab disables itself.
+      # Optional hosted lobby indexer; empty → the lobby reads the chain
+      # directly from the browser (open games only, no history).
       VITE_INDEXER_URL: ''
     steps:
       - uses: actions/checkout@v6

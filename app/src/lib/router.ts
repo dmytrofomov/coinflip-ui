@@ -6,9 +6,16 @@ interface Route {
   isTestnet: boolean;
 }
 
+// Build-time default network (VITE_DEFAULT_NETWORK=testnet|mainnet). The
+// Pages deploy ships testnet-first because the factory lives on testnet.
+const DEFAULT_TESTNET = import.meta.env.VITE_DEFAULT_NETWORK === 'testnet';
+
 function parseRoute(): Route {
   const params = new URLSearchParams(window.location.search);
-  return { isTestnet: params.get('testnet') === 'true' };
+  const explicit = params.get('testnet');
+  return {
+    isTestnet: explicit === null ? DEFAULT_TESTNET : explicit === 'true',
+  };
 }
 
 // import.meta.env.BASE_URL is "/" locally and the repo subpath on GitHub Pages,
@@ -17,7 +24,8 @@ const BASE = import.meta.env.BASE_URL;
 
 function buildUrl(testnet: boolean) {
   const params = new URLSearchParams();
-  if (testnet) params.set('testnet', 'true');
+  // Only mark the URL when deviating from the build default
+  if (testnet !== DEFAULT_TESTNET) params.set('testnet', String(testnet));
   const search = params.toString();
   return search ? `${BASE}?${search}` : BASE;
 }
