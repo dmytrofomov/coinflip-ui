@@ -1,0 +1,11 @@
+node_modules
+dist
+.DS_Store
+
+# Local environment — never commit real keys
+.env
+.env.*
+!.env.example
+
+*.local
+*.log

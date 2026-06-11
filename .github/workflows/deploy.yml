@@ -1,0 +1,70 @@
+name: Deploy UI to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Permissions the GitHub Pages deploy needs.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never run two deploys at once; let the newest win.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Deployed testnet CoinFlipFactory. To ship mainnet, set
+      # VITE_FACTORY_ADDRESS_MAINNET and switch the default network.
+      VITE_FACTORY_ADDRESS_TESTNET: kQDLbipuUZvCGnFehVhigObfanNyEWrR776vhXy0ouOCaaiM
+      # Optional hosted lobby indexer; empty → the lobby tab disables itself.
+      VITE_INDEXER_URL: ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Set base path and TON Connect manifest
+        run: |
+          REPO="${GITHUB_REPOSITORY#*/}"
+          SITE="https://${GITHUB_REPOSITORY_OWNER}.github.io/${REPO}/"
+          # Vite needs the repo subpath as its base so assets/routes resolve.
+          echo "VITE_BASE=/${REPO}/" >> "$GITHUB_ENV"
+          # Generate the app's own TON Connect manifest pointing at the live URL.
+          cat > app/public/tonconnect-manifest.json <<EOF
+          {
+            "url": "${SITE}",
+            "name": "TON Coin Flip",
+            "iconUrl": "${SITE}app-icon.svg"
+          }
+          EOF
+          echo "Built for $SITE"
+
+      - run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
