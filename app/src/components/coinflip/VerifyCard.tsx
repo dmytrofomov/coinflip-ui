@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Coin3D } from './Coin3D';
 import {
   coinIsHeads,
   commitmentOf,
@@ -24,6 +25,8 @@ export function VerifyCard() {
   const [commitmentInput, setCommitmentInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<VerifyResult | null>(null);
+  // Remount key so the coin replays its landing on every new check
+  const [spinNonce, setSpinNonce] = useState(0);
 
   async function handleVerify() {
     setError(null);
@@ -49,6 +52,7 @@ export function VerifyCard() {
       commitmentMatches,
       isHeads: coinIsHeads(secret, seed),
     });
+    setSpinNonce((n) => n + 1);
   }
 
   const inputClass =
@@ -100,10 +104,17 @@ export function VerifyCard() {
 
       {result && (
         <div className="flex flex-col gap-2 rounded-lg bg-secondary p-3 text-[13px]">
-          <div>
+          <div className="flex justify-center py-3">
+            <Coin3D
+              key={spinNonce}
+              size={104}
+              result={result.isHeads ? 'ton' : 'gram'}
+            />
+          </div>
+          <div className="text-center">
             Випадає:{' '}
             <span className="font-semibold">
-              {result.isHeads ? '🦅 орел (heads)' : '🪙 решка (tails)'}
+              {result.isHeads ? '🦅 орел — TON' : '🪙 решка — GRAM'}
             </span>
           </div>
           <div className="break-all">

@@ -3,6 +3,7 @@ import { TonConnectButton, THEME, useTonConnectUI } from '@tonconnect/ui-react';
 import { Sun, Moon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Coin3D } from '@/components/coinflip/Coin3D';
 import { CoinFlipApp } from '@/components/coinflip/CoinFlipApp';
 import { NetworkDropdown } from './components/NetworkDropdown';
 import { useRouter } from './lib/router';
@@ -62,6 +63,7 @@ export default function App() {
       {/* ─── Main content ─── */}
       <main className="flex-1 py-8 px-6 max-w-[1200px] mx-auto w-full">
         <div className="flex flex-col items-center gap-2 pb-8 text-center">
+          <Coin3D size={128} className="mb-4" />
           <h1 className="text-[22px] font-semibold tracking-tight">
             Орел чи решка — 1 на 1, чесно
           </h1>

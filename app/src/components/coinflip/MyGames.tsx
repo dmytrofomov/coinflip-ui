@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { Copy, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 
+import { Coin3D, type CoinSide } from './Coin3D';
+
 import { Button } from '@/components/ui/button';
 import { buildGameShareUrl } from '@/lib/config';
 import {
@@ -190,6 +192,7 @@ export function MyGames({ network, factoryAddr, refreshKey }: Props) {
 
           let outcomeText: string | null = null;
           let won: boolean | null = null;
+          let coinSide: CoinSide | null = null;
           if (snapshot?.state === 'finished') {
             const o = snapshot.outcome;
             if (!o) outcomeText = 'Завершено (подію не знайдено)';
@@ -207,6 +210,9 @@ export function MyGames({ network, factoryAddr, refreshKey }: Props) {
                   : o.coinIsHeads
                     ? '🦅 орел'
                     : '🪙 решка';
+              if (o.coinIsHeads !== undefined) {
+                coinSide = o.coinIsHeads ? 'ton' : 'gram';
+              }
               outcomeText =
                 o.kind === 'timedout'
                   ? winnerIsMe
@@ -313,14 +319,19 @@ export function MyGames({ network, factoryAddr, refreshKey }: Props) {
               )}
 
               {outcomeText && (
-                <p
-                  className={cn(
-                    won === true && 'text-success',
-                    won === false && 'text-muted-foreground',
+                <div className="flex items-center gap-3">
+                  {coinSide && (
+                    <Coin3D size={48} result={coinSide} className="shrink-0" />
                   )}
-                >
-                  {outcomeText}
-                </p>
+                  <p
+                    className={cn(
+                      won === true && 'text-success',
+                      won === false && 'text-muted-foreground',
+                    )}
+                  >
+                    {outcomeText}
+                  </p>
+                </div>
               )}
 
               <div className="flex items-center gap-2 pt-1">
