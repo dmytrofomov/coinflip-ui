@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Address, fromNano } from '@ton/core';
-import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
+import { useAddress, useSendTransaction } from '@ton/appkit-react';
 import { Loader2, Search, Swords } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,8 @@ import {
   u256ToHex,
   upsertGame,
 } from '@/lib/coinflip';
-import { getTonClient, networkChain } from '@/lib/ton';
+import { toTonNetwork } from '@/lib/appkit';
+import { getTonClient } from '@/lib/ton';
 import type { Network } from '@/lib/router';
 import type { GameData } from '@wrappers/CoinFlipGame.gen';
 
@@ -31,8 +32,8 @@ export function JoinGameCard({
   presetAddress,
   onJoined,
 }: Props) {
-  const [tonConnectUI] = useTonConnectUI();
-  const myAddress = useTonAddress();
+  const { mutateAsync: sendTransaction } = useSendTransaction();
+  const myAddress = useAddress();
   const [addrInput, setAddrInput] = useState(() => gameUrlParam() ?? '');
   const [game, setGame] = useState<GameData | null>(null);
   const [gameAddr, setGameAddr] = useState<string | null>(null);
@@ -93,9 +94,9 @@ export function JoinGameCard({
 
     try {
       setBusy('Підтвердіть транзакцію в гаманці…');
-      await tonConnectUI.sendTransaction({
+      await sendTransaction({
         validUntil: Math.floor(Date.now() / 1000) + 300,
-        network: networkChain(network),
+        network: toTonNetwork(network),
         messages: [
           {
             address: gameAddr,
@@ -123,7 +124,7 @@ export function JoinGameCard({
     game !== null && Date.now() / 1000 > Number(game.joinDeadline);
   const isOwnGame =
     game !== null &&
-    myAddress !== '' &&
+    myAddress != null &&
     Address.parse(myAddress).equals(game.creator);
   const joinable =
     game !== null &&

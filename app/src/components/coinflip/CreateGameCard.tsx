@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toNano, fromNano } from '@ton/core';
-import { useTonConnectUI } from '@tonconnect/ui-react';
+import { useSendTransaction } from '@ton/appkit-react';
 import { Coins, Copy, Download, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,8 @@ import {
   backupText,
   type StoredGame,
 } from '@/lib/coinflip';
-import { getTonClient, networkChain } from '@/lib/ton';
+import { toTonNetwork } from '@/lib/appkit';
+import { getTonClient } from '@/lib/ton';
 import type { Network } from '@/lib/router';
 
 function downloadBackup(game: StoredGame) {
@@ -46,7 +47,7 @@ export function CreateGameCard({
   maxStake,
   onCreated,
 }: Props) {
-  const [tonConnectUI] = useTonConnectUI();
+  const { mutateAsync: sendTransaction } = useSendTransaction();
   const [stakeInput, setStakeInput] = useState('1');
   const [side, setSide] = useState<'heads' | 'tails'>('heads');
   const [busy, setBusy] = useState<string | null>(null);
@@ -92,9 +93,9 @@ export function CreateGameCard({
 
     try {
       setBusy('Підтвердіть транзакцію в гаманці…');
-      await tonConnectUI.sendTransaction({
+      await sendTransaction({
         validUntil: Math.floor(Date.now() / 1000) + 300,
-        network: networkChain(network),
+        network: toTonNetwork(network),
         messages: [
           {
             address: factoryAddr,

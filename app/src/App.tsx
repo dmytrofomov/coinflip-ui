@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { TonConnectButton, THEME, useTonConnectUI } from '@tonconnect/ui-react';
+import { TonConnectButton, useAppKitTheme } from '@ton/appkit-react';
 import { Sun, Moon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -14,15 +14,13 @@ function useTheme() {
     const stored = localStorage.getItem('ton-dapp:theme');
     return stored === 'light' ? 'light' : 'dark';
   });
-  const [tonConnectUI] = useTonConnectUI();
+  const [, setAppKitTheme] = useAppKitTheme();
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('ton-dapp:theme', theme);
-    tonConnectUI.uiOptions = {
-      uiPreferences: { theme: theme === 'light' ? THEME.LIGHT : THEME.DARK },
-    };
-  }, [theme, tonConnectUI]);
+    setAppKitTheme(theme);
+  }, [theme, setAppKitTheme]);
 
   return { theme, setTheme };
 }

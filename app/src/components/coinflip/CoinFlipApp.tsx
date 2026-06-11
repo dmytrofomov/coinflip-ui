@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { fromNano } from '@ton/core';
 import { useQuery } from '@tanstack/react-query';
-import { useTonAddress } from '@tonconnect/ui-react';
+import { useAddress, useDefaultNetwork } from '@ton/appkit-react';
 
 import { Button } from '@/components/ui/button';
+import { toTonNetwork } from '@/lib/appkit';
 import { factoryAddress, gameUrlParam } from '@/lib/config';
 import { openFactory } from '@/lib/coinflip';
 import { getTonClient } from '@/lib/ton';
@@ -19,7 +20,13 @@ import { VerifyCard } from './VerifyCard';
 type Tab = 'lobby' | 'play' | 'mine' | 'verify';
 
 export function CoinFlipApp({ network }: { network: Network }) {
-  const walletAddress = useTonAddress();
+  const walletAddress = useAddress();
+  const [, setDefaultNetwork] = useDefaultNetwork();
+
+  // Keep AppKit's default network in sync with the URL-driven app network
+  useEffect(() => {
+    setDefaultNetwork(toTonNetwork(network));
+  }, [network, setDefaultNetwork]);
   const factoryAddr = factoryAddress(network);
   const hasGameLink = useMemo(() => gameUrlParam() !== null, []);
   const [tab, setTab] = useState<Tab>(hasGameLink ? 'play' : 'lobby');
@@ -80,7 +87,7 @@ export function CoinFlipApp({ network }: { network: Network }) {
       {tab === 'lobby' && (
         <Lobby
           network={network}
-          walletConnected={walletAddress !== ''}
+          walletConnected={walletAddress != null}
           onPlay={playGame}
         />
       )}
@@ -106,14 +113,14 @@ export function CoinFlipApp({ network }: { network: Network }) {
             <>
               <JoinGameCard
                 network={network}
-                walletConnected={walletAddress !== ''}
+                walletConnected={walletAddress != null}
                 presetAddress={joinTarget}
                 onJoined={bumpAndShowMine}
               />
               <CreateGameCard
                 network={network}
                 factoryAddr={factoryAddr}
-                walletConnected={walletAddress !== ''}
+                walletConnected={walletAddress != null}
                 minStake={params ? params.minStake : null}
                 maxStake={params ? params.maxStake : null}
                 onCreated={bumpAndShowMine}
@@ -124,14 +131,14 @@ export function CoinFlipApp({ network }: { network: Network }) {
               <CreateGameCard
                 network={network}
                 factoryAddr={factoryAddr}
-                walletConnected={walletAddress !== ''}
+                walletConnected={walletAddress != null}
                 minStake={params ? params.minStake : null}
                 maxStake={params ? params.maxStake : null}
                 onCreated={bumpAndShowMine}
               />
               <JoinGameCard
                 network={network}
-                walletConnected={walletAddress !== ''}
+                walletConnected={walletAddress != null}
                 presetAddress={joinTarget}
                 onJoined={bumpAndShowMine}
               />

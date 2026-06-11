@@ -1,7 +1,6 @@
 import { Address } from '@ton/core';
 import { TonClient } from '@ton/ton';
 import { QueryClient } from '@tanstack/react-query';
-import { CHAIN } from '@tonconnect/ui-react';
 
 import type { Network } from './router';
 
@@ -29,10 +28,6 @@ export function tonviewerUrl(network: Network): string {
 
 export function networkLabel(network: Network): string {
   return network === 'testnet' ? 'Testnet' : 'Mainnet';
-}
-
-export function networkChain(network: Network): CHAIN {
-  return network === 'testnet' ? CHAIN.TESTNET : CHAIN.MAINNET;
 }
 
 export function formatAddressForNetwork(

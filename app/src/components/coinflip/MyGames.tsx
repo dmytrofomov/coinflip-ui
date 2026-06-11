@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Address, fromNano } from '@ton/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
+import { useAddress, useSendTransaction } from '@ton/appkit-react';
 import { Copy, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 
 import { Coin3D, type CoinSide } from './Coin3D';
@@ -24,7 +24,8 @@ import {
   type GameSnapshot,
   type StoredGame,
 } from '@/lib/coinflip';
-import { getTonClient, networkChain, tonviewerUrl } from '@/lib/ton';
+import { toTonNetwork } from '@/lib/appkit';
+import { getTonClient, tonviewerUrl } from '@/lib/ton';
 import { cn } from '@/lib/utils';
 import type { Network } from '@/lib/router';
 
@@ -56,8 +57,8 @@ interface Props {
 }
 
 export function MyGames({ network, factoryAddr, refreshKey }: Props) {
-  const [tonConnectUI] = useTonConnectUI();
-  const myAddress = useTonAddress();
+  const { mutateAsync: sendTx } = useSendTransaction();
+  const myAddress = useAddress();
   const queryClient = useQueryClient();
   const now = useNow(1000);
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -132,9 +133,9 @@ export function MyGames({ network, factoryAddr, refreshKey }: Props) {
   ): Promise<void> {
     setBusyKey(key);
     try {
-      await tonConnectUI.sendTransaction({
+      await sendTx({
         validUntil: Math.floor(Date.now() / 1000) + 300,
-        network: networkChain(network),
+        network: toTonNetwork(network),
         messages: [
           { address: gameAddr, amount: ACTION_VALUE.toString(), payload },
         ],
@@ -200,7 +201,7 @@ export function MyGames({ network, factoryAddr, refreshKey }: Props) {
               outcomeText = 'Скасовано, ставку повернено';
             else {
               const winnerIsMe =
-                myAddress !== '' &&
+                myAddress != null &&
                 o.winner !== undefined &&
                 Address.parse(myAddress).equals(Address.parse(o.winner));
               won = winnerIsMe;
