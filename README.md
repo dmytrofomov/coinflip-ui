@@ -29,9 +29,11 @@ publishes on every push to `main`.
    # or: create it on github.com, then
    # git remote add origin git@github.com:<you>/coinflip-ui.git && git push -u origin main
    ```
-2. On GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-3. Done — the workflow builds and deploys. Site goes live at
+2. Done — the workflow enables Pages by itself (`configure-pages` with
+   `enablement: true`) and deploys. Site goes live at
    `https://<you>.github.io/<repo>/`.
+   If your org restricts API enablement, set it once manually:
+   **Settings → Pages → Source: GitHub Actions**.
 
 The workflow automatically:
 
